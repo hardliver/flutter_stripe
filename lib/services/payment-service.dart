@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:stripe_payment/stripe_payment.dart';
 
@@ -30,12 +31,40 @@ class StripeService {
     );
   }
 
-  static StripeTransactionResponse payWithExistingCard(
-      {String amount, String currency, card}) {
-    return new StripeTransactionResponse(
-      message: 'Transaction successful',
-      success: true,
-    );
+  static Future<StripeTransactionResponse> payWithExistingCard(
+      {String amount, String currency, CreditCard card}) async {
+    try {
+      var paymentMethod = await StripePayment.createPaymentMethod(
+          PaymentMethodRequest(card: card));
+      var paymentIntent = await StripeService.createPaymentIntent(
+        amount,
+        currency,
+      );
+      var response = await StripePayment.confirmPaymentIntent(
+        PaymentIntent(
+          clientSecret: paymentIntent['client_secret'],
+          paymentMethodId: paymentMethod.id,
+        ),
+      );
+      if (response.status == 'succeeded') {
+        return new StripeTransactionResponse(
+          message: 'Transaction successful',
+          success: true,
+        );
+      } else {
+        return new StripeTransactionResponse(
+          message: 'Transaction failed',
+          success: false,
+        );
+      }
+    } on PlatformException catch (err) {
+      return StripeService.getPlatFormExceptionErrorResult(err);
+    } catch (err) {
+      return new StripeTransactionResponse(
+        message: 'Transaction failed: ${err.toString()}',
+        success: false,
+      );
+    }
   }
 
   static Future<StripeTransactionResponse> payWithNewCard(
@@ -64,12 +93,26 @@ class StripeService {
           success: false,
         );
       }
+    } on PlatformException catch (err) {
+      return StripeService.getPlatFormExceptionErrorResult(err);
     } catch (err) {
       return new StripeTransactionResponse(
         message: 'Transaction failed: ${err.toString()}',
         success: false,
       );
     }
+  }
+
+  static getPlatFormExceptionErrorResult(err) {
+    String message = 'Something went wrong';
+    if (err.code == 'cancelled') {
+      message = 'Transaction cancelled';
+    }
+
+    return new StripeTransactionResponse(
+      message: message,
+      success: false,
+    );
   }
 
   static Future<Map<String, dynamic>> createPaymentIntent(

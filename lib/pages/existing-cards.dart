@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_credit_card/credit_card_widget.dart';
 import 'package:flutter_stripe/services/payment-service.dart';
+import 'package:stripe_payment/stripe_payment.dart';
+import 'package:progress_dialog/progress_dialog.dart';
 
 class ExistingCardsPage extends StatefulWidget {
   @override
@@ -17,7 +19,7 @@ class _ExistingCardsPageState extends State<ExistingCardsPage> {
       'showBackView': false,
     },
     {
-      'cardNumber': '3566002020360505',
+      'cardNumber': '5555555555554444',
       'expiryDate': '04/23',
       'cardHolderName': 'Tracer',
       'cvvCode': '123',
@@ -25,12 +27,22 @@ class _ExistingCardsPageState extends State<ExistingCardsPage> {
     }
   ];
 
-  payViaExistingCard(BuildContext context, card) {
-    var response = StripeService.payWithExistingCard(
-      amount: '150',
-      currency: 'USD',
-      card: card,
+  payViaExistingCard(BuildContext context, card) async {
+    ProgressDialog dialog = new ProgressDialog(context);
+    dialog.style(message: 'Please wait ...');
+    await dialog.show();
+    var expiryArr = card['expiryDate'].split('/');
+    CreditCard stripeCard = CreditCard(
+      number: card['cardNumber'],
+      expMonth: int.parse(expiryArr[0]),
+      expYear: int.parse(expiryArr[1]),
     );
+    var response = await StripeService.payWithExistingCard(
+      amount: '2500',
+      currency: 'USD',
+      card: stripeCard,
+    );
+    await dialog.hide();
     if (response.success == true) {
       ScaffoldMessenger.of(context)
           .showSnackBar(

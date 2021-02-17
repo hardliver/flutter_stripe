@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/services/payment-service.dart';
+import 'package:progress_dialog/progress_dialog.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -10,21 +11,29 @@ class _HomePageState extends State<HomePage> {
   onItemPress(BuildContext context, int index) async {
     switch (index) {
       case 0:
-        var response = await StripeService.payWithNewCard(
-          amount: '15000',
-          currency: 'USD',
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message),
-            duration: new Duration(
-                milliseconds: response.success == true ? 1200 : 3000),
-          ),
-        );
+        payViaNewCard(context);
         break;
       case 1:
         Navigator.pushNamed(context, '/existing-cards');
     }
+  }
+
+  payViaNewCard(BuildContext context) async {
+    ProgressDialog dialog = new ProgressDialog(context);
+    dialog.style(message: 'Please wait ...');
+    await dialog.show();
+    var response = await StripeService.payWithNewCard(
+      amount: '15000',
+      currency: 'USD',
+    );
+    await dialog.hide();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(response.message),
+        duration:
+            new Duration(milliseconds: response.success == true ? 1200 : 3000),
+      ),
+    );
   }
 
   @override
