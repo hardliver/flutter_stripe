@@ -7,25 +7,30 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  onItemPress(BuildContext context, int index) {
+  onItemPress(BuildContext context, int index) async {
     switch (index) {
       case 0:
-        var response = StripeService.payWithNewCard(
-          amount: '150',
+        var response = await StripeService.payWithNewCard(
+          amount: '15000',
           currency: 'USD',
         );
-        if (response.success == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message),
-              duration: new Duration(milliseconds: 1200),
-            ),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response.message),
+            duration: new Duration(
+                milliseconds: response.success == true ? 1200 : 3000),
+          ),
+        );
         break;
       case 1:
         Navigator.pushNamed(context, '/existing-cards');
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    StripeService.init();
   }
 
   @override
